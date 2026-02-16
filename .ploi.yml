@@ -8,15 +8,15 @@ app: political-bias-detector
 deploy:
   # Build Docker images
   build:
-    command: cd /opt/political-bias-detector && docker-compose -f docker-compose.production.yml build --pull
+    command: cd /opt/political-bias-detector && chmod +x scripts/docker-compose-wrapper.sh && ./scripts/docker-compose-wrapper.sh -f docker-compose.production.yml build --pull
 
   # Start services
   start:
-    command: cd /opt/political-bias-detector && docker-compose -f docker-compose.production.yml up -d
+    command: cd /opt/political-bias-detector && chmod +x scripts/docker-compose-wrapper.sh && ./scripts/docker-compose-wrapper.sh -f docker-compose.production.yml up -d
 
   # Health check
   health:
-    command: cd /opt/political-bias-detector && docker-compose -f docker-compose.production.yml ps
+    command: cd /opt/political-bias-detector && chmod +x scripts/docker-compose-wrapper.sh && ./scripts/docker-compose-wrapper.sh -f docker-compose.production.yml ps
 
 # Environment variables (set these in Ploi dashboard - do NOT commit sensitive values)
 env:
