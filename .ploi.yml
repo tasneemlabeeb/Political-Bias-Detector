@@ -1,4 +1,5 @@
 # Ploi Deployment Configuration for Political Bias Detector
+# Install/Configure: https://ploi.io
 
 # Application name
 app: political-bias-detector
@@ -7,23 +8,25 @@ app: political-bias-detector
 deploy:
   # Build Docker images
   build:
-    command: docker-compose -f docker-compose.production.yml build
+    command: cd /opt/political-bias-detector && docker-compose -f docker-compose.production.yml build --pull
 
   # Start services
   start:
-    command: docker-compose -f docker-compose.production.yml up -d
+    command: cd /opt/political-bias-detector && docker-compose -f docker-compose.production.yml up -d
 
   # Health check
   health:
-    command: docker-compose -f docker-compose.production.yml ps
+    command: cd /opt/political-bias-detector && docker-compose -f docker-compose.production.yml ps
 
-# Environment variables (set these in Ploi dashboard)
+# Environment variables (set these in Ploi dashboard - do NOT commit sensitive values)
 env:
   - ENVIRONMENT=production
   - DEBUG=false
   - SECRET_KEY=${SECRET_KEY}
-  - DATABASE_URL=${DATABASE_URL}
+  - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+  - DB_USER=pbd_user
   - DB_PASSWORD=${DB_PASSWORD}
+  - DB_NAME=political_bias_detector
   - GEMINI_API_KEY=${GEMINI_API_KEY}
   - NEWS_API_KEY=${NEWS_API_KEY}
   - SERPER_API_KEY=${SERPER_API_KEY}
@@ -32,13 +35,16 @@ env:
 # Deployment hooks
 hooks:
   before_deploy: |
-    echo "Starting deployment..."
+    echo "✓ Starting deployment for Political Bias Detector..."
     chmod +x scripts/deploy.sh
+    chmod +x scripts/*.sh
+    cd /opt/political-bias-detector || true
     
   after_deploy: |
-    echo "Deployment complete"
-    sleep 60
+    echo "✓ Deployment complete - running health checks..."
+    sleep 30
     docker-compose -f docker-compose.production.yml ps
+    echo "✓ Deployment finished successfully"
 
 # Services to monitor
 services:

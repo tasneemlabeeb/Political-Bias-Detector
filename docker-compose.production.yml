@@ -54,7 +54,7 @@ services:
     container_name: pbd-frontend
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://10.122.0.3:8080/api
+      - NEXT_PUBLIC_API_URL=http://localhost/api
     expose:
       - "3000"
     depends_on:
