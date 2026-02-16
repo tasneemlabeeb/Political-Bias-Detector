@@ -1,0 +1,57 @@
+# Ploi Deployment Configuration for Political Bias Detector
+
+# Application name
+app: political-bias-detector
+
+# Deploy on server
+deploy:
+  # Build Docker images
+  build:
+    command: docker-compose -f docker-compose.production.yml build
+
+  # Start services
+  start:
+    command: docker-compose -f docker-compose.production.yml up -d
+
+  # Health check
+  health:
+    command: docker-compose -f docker-compose.production.yml ps
+
+# Environment variables (set these in Ploi dashboard)
+env:
+  - ENVIRONMENT=production
+  - DEBUG=false
+  - SECRET_KEY=${SECRET_KEY}
+  - DATABASE_URL=${DATABASE_URL}
+  - DB_PASSWORD=${DB_PASSWORD}
+  - GEMINI_API_KEY=${GEMINI_API_KEY}
+  - NEWS_API_KEY=${NEWS_API_KEY}
+  - SERPER_API_KEY=${SERPER_API_KEY}
+  - CORS_ORIGINS=http://10.122.0.3,http://localhost
+
+# Deployment hooks
+hooks:
+  before_deploy: |
+    echo "Starting deployment..."
+    chmod +x scripts/deploy.sh
+    
+  after_deploy: |
+    echo "Deployment complete"
+    sleep 60
+    docker-compose -f docker-compose.production.yml ps
+
+# Services to monitor
+services:
+  - postgres
+  - backend
+  - frontend
+  - nginx
+
+# Ports
+ports:
+  - 80:80
+  - 443:443
+
+# Auto-deploy on push
+auto_deploy: true
+branch: main
