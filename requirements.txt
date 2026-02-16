@@ -1,0 +1,40 @@
+# Political Bias Detector - Core Dependencies
+
+# Web Framework
+streamlit>=1.31.0
+
+# Data Processing
+pandas>=2.1.0
+altair>=5.2.0
+
+# Machine Learning & NLP
+transformers>=4.36.0
+torch>=2.1.0
+
+# Web Scraping & Data Collection
+requests>=2.31.0
+beautifulsoup4>=4.12.3
+feedparser>=6.0.10
+lxml>=5.1.0
+
+# Database
+sqlalchemy>=2.0.25
+
+# Social Media Integration
+praw>=7.7.1
+tweepy>=4.14.0
+
+# Video/Audio Transcription
+openai>=1.12.0
+youtube-transcript-api>=0.6.2
+yt-dlp>=2024.3.10
+
+# LLM APIs
+google-generativeai>=0.3.0
+
+# Citation Network Analysis
+networkx>=3.2.1
+python-louvain>=0.16
+
+# Utilities
+python-dotenv>=1.0.0

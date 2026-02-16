@@ -1,0 +1,165 @@
+# Docker Compose for Political Bias Detector
+# Development and local testing setup
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: bias_detector_db
+    environment:
+      POSTGRES_USER: bias_user
+      POSTGRES_PASSWORD: bias_pass_dev
+      POSTGRES_DB: bias_detector
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bias_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bias_network
+
+  # Redis Cache & Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: bias_detector_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - bias_network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: bias_detector_api
+    environment:
+      DATABASE_URL: postgresql://bias_user:bias_pass_dev@postgres:5432/bias_detector
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      SECRET_KEY: dev_secret_key_change_in_production
+      DEBUG: "true"
+      ENVIRONMENT: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./src:/app/src
+      - ./models:/app/models
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bias_network
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: bias_detector_worker
+    environment:
+      DATABASE_URL: postgresql://bias_user:bias_pass_dev@postgres:5432/bias_detector
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      SECRET_KEY: dev_secret_key_change_in_production
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app/backend
+      - ./src:/app/src
+      - ./models:/app/models
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - bias_network
+    command: celery -A backend.celery_app worker --loglevel=info
+
+  # Celery Beat (Scheduler)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: bias_detector_beat
+    environment:
+      DATABASE_URL: postgresql://bias_user:bias_pass_dev@postgres:5432/bias_detector
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      SECRET_KEY: dev_secret_key_change_in_production
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app/backend
+      - ./src:/app/src
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - bias_network
+    command: celery -A backend.celery_app beat --loglevel=info
+
+  # Flower (Celery Monitoring)
+  flower:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: bias_detector_flower
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - celery_worker
+    networks:
+      - bias_network
+    command: celery -A backend.celery_app flower --port=5555
+
+  # Streamlit Frontend (existing)
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bias_detector_streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./models:/app/models
+    depends_on:
+      - backend
+    networks:
+      - bias_network
+    environment:
+      BACKEND_API_URL: http://backend:8000
+    command: streamlit run src/frontend/news_reader_app.py
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  bias_network:
+    driver: bridge

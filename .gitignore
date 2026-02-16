@@ -1,0 +1,131 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+
+# PyTorch
+*.pth
+*.pt
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+news_sources.db
+
+# Data
+data/raw/*
+data/processed/*
+data/labeling/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/labeling/.gitkeep
+
+# Models
+models/*
+!models/.gitkeep
+*.onnx
+*.safetensors
+
+# Evaluation Results
+evaluation_results/
+*.png
+*.jpg
+*.pdf
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Docker
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# OS
+Thumbs.db
+.DS_Store
+*.swp
+
+# Browser Extension builds
+browser-extension/*.zip
+browser-extension/dist/
+
+# Node modules (if using)
+node_modules/
+
+# Alembic
+alembic/versions/*.pyc
+
+# Pytest
+.pytest_cache/
+.tox/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Redis dump
+dump.rdb
+
+# Keep empty directories
+!.gitkeep

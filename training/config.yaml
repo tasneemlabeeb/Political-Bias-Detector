@@ -1,0 +1,102 @@
+# Model Training Configuration
+# Last updated: 2026-02-16
+
+# Data Configuration
+data:
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  labeling_dir: "data/labeling"
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+  min_text_length: 50
+  max_text_length: 5000
+  batch_size: 16
+
+# Model Configuration
+model:
+  base_models:
+    direction:
+      name: "bucketresearch/politicalBiasBERT"
+      fine_tune: true
+      learning_rate: 2e-5
+    intensity:
+      name: "himel7/bias-detector"
+      fine_tune: true
+      learning_rate: 2e-5
+  
+  # Custom model for domain-specific fine-tuning
+  custom:
+    architecture: "roberta-base"  # or "bert-base-uncased", "distilbert-base-uncased"
+    num_labels: 5  # Left-Leaning, Center-Left, Centrist, Center-Right, Right-Leaning
+    dropout: 0.1
+    hidden_size: 768
+    learning_rate: 3e-5
+    warmup_steps: 500
+    weight_decay: 0.01
+
+# Training Configuration
+training:
+  epochs: 5
+  batch_size: 16
+  gradient_accumulation_steps: 2
+  max_grad_norm: 1.0
+  eval_steps: 500
+  save_steps: 1000
+  logging_steps: 100
+  early_stopping_patience: 3
+  fp16: true  # Mixed precision training (if GPU available)
+  
+  # Data augmentation
+  augmentation:
+    enabled: true
+    back_translation: false  # Expensive, enable if needed
+    synonym_replacement: true
+    random_swap: true
+    random_deletion: false
+
+# Evaluation Metrics
+evaluation:
+  metrics:
+    - accuracy
+    - f1_macro
+    - f1_weighted
+    - precision
+    - recall
+    - confusion_matrix
+  calibration_check: true
+  fairness_metrics: true
+
+# MLflow Configuration
+mlflow:
+  tracking_uri: "mlruns"  # Local directory or remote server
+  experiment_name: "political_bias_detector"
+  artifact_location: "mlruns/artifacts"
+  log_models: true
+  log_params: true
+  log_metrics: true
+
+# Active Learning Configuration
+active_learning:
+  enabled: true
+  strategy: "uncertainty_sampling"  # or "diversity_sampling", "committee_disagreement"
+  samples_per_iteration: 100
+  confidence_threshold: 0.7
+
+# Labeling Configuration
+labeling:
+  interface: "prodigy"  # or "labelstudio", "doccano"
+  annotators: 3  # Number of annotators per item for inter-annotator agreement
+  agreement_threshold: 0.7  # Cohen's Kappa threshold
+
+# Hardware Configuration
+hardware:
+  device: "auto"  # auto, cpu, cuda, mps
+  num_workers: 4
+  pin_memory: true
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/training.log"
