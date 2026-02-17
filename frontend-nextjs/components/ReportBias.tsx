@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BIAS_ORDER, BIAS_COLORS, BIAS_DISPLAY_NAMES } from '@/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api'
 
 export default function ReportBias() {
   const [isOpen, setIsOpen] = useState(false)

@@ -11,7 +11,7 @@ import FilterPanel from '@/components/FilterPanel'
 import ReportBias from '@/components/ReportBias'
 import { Article, FilterState } from '@/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api'
 
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([])
@@ -53,7 +53,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error fetching news:', error)
-      alert('Failed to fetch news. Make sure the backend is running on http://localhost:8000')
+      alert('Failed to fetch news. Please check if the backend service is running.')
     } finally {
       setLoading(false)
     }
@@ -136,7 +136,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error searching topic:', error)
-      alert('Failed to search topic. Make sure the backend is running on http://localhost:8000')
+      alert('Failed to search topic. Please check if the backend service is running.')
     } finally {
       setLoading(false)
     }
