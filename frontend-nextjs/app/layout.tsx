@@ -16,7 +16,7 @@ const sora = Sora({
 })
 
 export const metadata: Metadata = {
-  title: 'Political Bias Detector | News Reader',
+  title: 'Political Bias Detector',
   description: 'Track narrative framing across outlets with ML predictions and confidence diagnostics',
 }
 

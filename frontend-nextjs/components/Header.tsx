@@ -16,7 +16,7 @@ export default function Header() {
       </p>
       
       <h1 className="text-4xl md:text-5xl font-extrabold font-[var(--font-sora)] tracking-tight mb-3">
-        Political Bias News Reader
+        Political Bias Detector
       </h1>
       
       <p className="text-[var(--muted)] text-lg max-w-4xl leading-relaxed mx-auto">
