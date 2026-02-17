@@ -8,7 +8,10 @@ import MetricCards from '@/components/MetricCards'
 import BiasSpectrum from '@/components/BiasSpectrum'
 import ArticlesList from '@/components/ArticlesList'
 import FilterPanel from '@/components/FilterPanel'
+import ReportBias from '@/components/ReportBias'
 import { Article, FilterState } from '@/types'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([])
@@ -31,7 +34,7 @@ export default function Home() {
   const fetchNews = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/v1/articles/fetch', {
+      const response = await fetch(`${API_BASE}/v1/articles/fetch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       })
@@ -63,7 +66,7 @@ export default function Home() {
       const classifiedArticles = await Promise.all(
         articles.map(async (article) => {
           try {
-            const response = await fetch('http://localhost:8000/api/v1/classify', {
+            const response = await fetch(`${API_BASE}/v1/classify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ text: article.title + ' ' + (article.summary || '') }),
@@ -103,7 +106,7 @@ export default function Home() {
     setCurrentTopic(topic)
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v1/search/topic?topic=${encodeURIComponent(topic)}&max_articles=30`,
+        `${API_BASE}/v1/search?topic=${encodeURIComponent(topic)}&max_articles=30`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -206,12 +209,15 @@ export default function Home() {
   }, [filters, articles, mlEnabled])
 
   return (
-    <main className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-white">
         <Header />
 
         {/* Topic Search */}
         <TopicSearch onSearch={searchByTopic} loading={loading} />
+
+        {/* Report Bias - Crowdsourcing */}
+        <ReportBias />
 
         {/* Mode Indicator */}
         {searchMode === 'topic' && currentTopic && (

@@ -7,13 +7,12 @@ News search with NewsAPI integration and ML-based bias classification.
 import logging
 from typing import List, Optional
 from datetime import datetime
-import pandas as pd
 
 from fastapi import APIRouter, HTTPException, status, Query
 from pydantic import BaseModel, Field
 
 from backend.news_search_service import get_news_search_service
-from src.backend.bias_classifier import PoliticalBiasClassifier
+from backend.ml_service import get_ml_classifier
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -28,12 +27,12 @@ class SearchResult(BaseModel):
     summary: Optional[str] = None
     content: Optional[str] = None
     image_url: Optional[str] = None
-    
+
     # ML Classification Results
     ml_bias: str
     ml_confidence: float
     ml_explanation: Optional[str] = None
-    
+
     # Detailed ML Scores
     spectrum_left: Optional[float] = None
     spectrum_center: Optional[float] = None
@@ -56,111 +55,88 @@ async def search_by_topic(
 ):
     """
     Search for news articles using NewsAPI and classify with ML model.
-    
-    This endpoint will:
+
     1. Search NewsAPI for articles matching the query
     2. Fetch full article content from sources
     3. Apply ML bias classification to each article
     4. Return results with detailed bias analysis
-    
-    Args:
-        topic: The search query (e.g., "bangladesh", "climate change")
-        max_articles: Maximum number of articles to return
     """
     try:
         logger.info(f"Search initiated: {topic}")
-        
-        # Get news search service
+
         search_service = get_news_search_service()
-        
+
         if not search_service.enabled:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="News search service not configured. Please set NEWS_API_KEY."
             )
-        
-        # Search for articles and fetch content
+
         articles = search_service.search_with_content(
             query=topic,
             max_results=max_articles,
             fetch_full_content=True
         )
-        
+
         if not articles:
             return TopicSearchResponse(
-                success=True,
-                query=topic,
-                total_found=0,
-                articles=[]
+                success=True, query=topic, total_found=0, articles=[]
             )
-        
-        # Convert to DataFrame for ML classification
-        df_data = []
+
+        # Prepare texts for batch classification
+        texts = []
+        titles = []
         for article in articles:
-            df_data.append({
-                "title": article.get("title", ""),
-                "summary": article.get("description", ""),
-                "content": article.get("full_content", ""),
-                "url": article.get("url", ""),
-                "source": article.get("source", {}).get("name", "Unknown"),
-                "published": article.get("publishedAt", datetime.now().isoformat()),
-                "image_url": article.get("urlToImage"),
-                "political_bias": "Unclassified"  # Will be updated by ML
-            })
-        
-        df = pd.DataFrame(df_data)
-        
-        # Apply ML classification
-        logger.info(f"Classifying {len(df)} articles with ML model...")
-        classifier = PoliticalBiasClassifier()
-        classified_df = classifier.classify_dataframe(df)
-        
-        # Convert back to response format
+            title = article.get("title", "")
+            content = article.get("full_content", "") or article.get("description", "")
+            titles.append(title)
+            texts.append(content)
+
+        # Classify with ML model (batch)
+        classifier = get_ml_classifier()
+        if classifier.is_available:
+            classifications = classifier.classify_batch(texts, titles)
+        else:
+            # Fallback: use Gemini for each article
+            from backend.llm_service import get_gemini_service
+            gemini = get_gemini_service()
+            classifications = []
+            for title, text in zip(titles, texts):
+                result = gemini.classify_bias(text, title)
+                classifications.append(result)
+
+        # Build response
         results = []
-        for _, row in classified_df.iterrows():
-            # Handle NaN values from pandas
-            summary = row.get("summary")
-            if pd.isna(summary):
-                summary = None
-            
-            image_url = row.get("image_url")
-            if pd.isna(image_url):
-                image_url = None
-            
-            content = row.get("content", "")
-            if pd.isna(content):
-                content = ""
-            
-            ml_explanation = row.get("ml_explanation")
-            if pd.isna(ml_explanation):
-                ml_explanation = None
-            
+        for i, article in enumerate(articles):
+            cls = classifications[i] if i < len(classifications) else {}
+
+            summary = article.get("description")
+            image_url = article.get("urlToImage")
+            content = article.get("full_content", "")
+
             results.append(SearchResult(
-                title=row["title"],
-                link=row["url"],
-                source_name=row["source"],
-                published=row["published"],
-                summary=summary,
-                content=str(content)[:500] if content else None,  # Truncate for response
-                image_url=image_url,
-                ml_bias=row["ml_bias"],
-                ml_confidence=float(row["ml_confidence"]),
-                ml_explanation=ml_explanation,
-                spectrum_left=float(row.get("spectrum_left", 0)),
-                spectrum_center=float(row.get("spectrum_center", 0)),
-                spectrum_right=float(row.get("spectrum_right", 0)),
-                bias_intensity=float(row.get("bias_intensity", 0)),
+                title=article.get("title", ""),
+                link=article.get("url", ""),
+                source_name=article.get("source", {}).get("name", "Unknown"),
+                published=article.get("publishedAt", datetime.now().isoformat()),
+                summary=summary if summary else None,
+                content=str(content)[:500] if content else None,
+                image_url=image_url if image_url else None,
+                ml_bias=cls.get("ml_bias", "Centrist"),
+                ml_confidence=float(cls.get("ml_confidence", 0.5)),
+                ml_explanation=cls.get("ml_reasoning"),
+                spectrum_left=cls.get("spectrum_left"),
+                spectrum_center=cls.get("spectrum_center"),
+                spectrum_right=cls.get("spectrum_right"),
+                bias_intensity=cls.get("bias_intensity"),
             ))
-        
+
         logger.info(f"Successfully classified {len(results)} articles")
-        
+
         return TopicSearchResponse(
-            success=True,
-            query=topic,
-            total_found=len(results),
-            articles=results
+            success=True, query=topic, total_found=len(results), articles=results
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:

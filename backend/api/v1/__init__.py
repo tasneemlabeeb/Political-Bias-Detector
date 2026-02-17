@@ -9,13 +9,10 @@ from fastapi import APIRouter
 from backend.api.v1.endpoints import (
     articles,
     auth,
-    citations,
     classify,
     enhanced_search,
-    media,
+    reports,
     search,
-    social_media,
-    sources,
     url_classifier,
     users,
 )
@@ -23,14 +20,11 @@ from backend.api.v1.endpoints import (
 api_router = APIRouter()
 
 # Include sub-routers
+api_router.include_router(articles.router, prefix="/articles", tags=["Articles"])
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
-api_router.include_router(sources.router, prefix="/sources", tags=["News Sources"])
-api_router.include_router(articles.router, prefix="/articles", tags=["Articles"])
 api_router.include_router(classify.router, prefix="/classify", tags=["Classification"])
 api_router.include_router(url_classifier.router, prefix="/classify/url", tags=["URL Classification"])
+api_router.include_router(reports.router, prefix="/reports", tags=["Bias Reports"])
 api_router.include_router(search.router, prefix="/search", tags=["Topic Search"])
 api_router.include_router(enhanced_search.router, prefix="/search/enhanced", tags=["Enhanced Search"])
-api_router.include_router(social_media.router, prefix="/social-media", tags=["Social Media Analysis"])
-api_router.include_router(media.router, prefix="/media", tags=["Video/Audio Analysis"])
-api_router.include_router(citations.router, prefix="/citations", tags=["Citation Network"])

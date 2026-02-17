@@ -15,11 +15,10 @@ WORKDIR /app
 
 # Copy requirements
 COPY backend/requirements-backend.txt .
-COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements-backend.txt -r requirements.txt
+    pip install --no-cache-dir -r requirements-backend.txt
 
 # Stage 2: Production stage
 FROM python:3.11-slim
@@ -41,7 +40,6 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY backend/ /app/backend/
-COPY src/ /app/src/
 
 # Create models directory (will be mounted as volume)
 RUN mkdir -p /app/models /app/logs

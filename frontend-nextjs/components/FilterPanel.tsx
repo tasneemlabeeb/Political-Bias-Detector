@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react'
-import { Article, FilterState, BIAS_ORDER } from '@/types'
+import { Article, FilterState, BIAS_ORDER, BIAS_DISPLAY_NAMES } from '@/types'
 
 interface Props {
   articles: Article[]
@@ -90,7 +90,7 @@ export default function FilterPanel({ articles, filters, setFilters, mlEnabled }
                           }}
                           className="w-4 h-4"
                         />
-                        {bias}
+                        {BIAS_DISPLAY_NAMES[bias] || bias}
                       </label>
                     ))}
                   </div>

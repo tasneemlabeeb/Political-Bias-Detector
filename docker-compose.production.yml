@@ -25,7 +25,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: backend/Dockerfile
     container_name: pbd-backend
     environment:
       - ENVIRONMENT=production

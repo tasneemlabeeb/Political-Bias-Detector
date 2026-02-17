@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Article, BIAS_COLORS, BIAS_ORDER } from '@/types'
+import { Article, BIAS_COLORS, BIAS_ORDER, BIAS_DISPLAY_NAMES } from '@/types'
 
 interface Props {
   articles: Article[]
@@ -43,7 +43,7 @@ export default function BiasSpectrum({ articles }: Props) {
                 transition={{ duration: 0.8, ease: 'easeOut' }}
                 className="flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:brightness-110 transition-all"
                 style={{ backgroundColor: BIAS_COLORS[bias] }}
-                title={`${bias}: ${count} (${percentage.toFixed(0)}%)`}
+                title={`${BIAS_DISPLAY_NAMES[bias] || bias}: ${count} (${percentage.toFixed(0)}%)`}
               >
                 {percentage > 8 && count}
               </motion.div>
@@ -58,7 +58,7 @@ export default function BiasSpectrum({ articles }: Props) {
                 className="w-3 h-3"
                 style={{ backgroundColor: BIAS_COLORS[bias] }}
               />
-              <span className="text-[var(--muted)] font-medium">{bias}</span>
+              <span className="text-[var(--muted)] font-medium">{BIAS_DISPLAY_NAMES[bias] || bias}</span>
             </div>
           ))}
         </div>

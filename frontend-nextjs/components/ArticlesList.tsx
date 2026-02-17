@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Article, BIAS_COLORS } from '@/types'
+import { Article, BIAS_COLORS, BIAS_DISPLAY_NAMES } from '@/types'
 import { format } from 'date-fns'
 import { ExternalLink } from 'lucide-react'
 
@@ -57,7 +57,7 @@ export default function ArticlesList({ articles, mlEnabled, showAiReasoning }: P
                   className="px-3 py-1 text-white text-xs font-bold"
                   style={{ backgroundColor: biasColor }}
                 >
-                  {biasLabel}
+                  {BIAS_DISPLAY_NAMES[biasLabel] || biasLabel}
                 </span>
 
                 {mlEnabled && article.ml_bias && (
@@ -65,7 +65,7 @@ export default function ArticlesList({ articles, mlEnabled, showAiReasoning }: P
                     className="px-3 py-1 text-white text-xs font-bold"
                     style={{ backgroundColor: BIAS_COLORS[article.ml_bias] }}
                   >
-                    AI: {article.ml_bias}
+                    AI: {BIAS_DISPLAY_NAMES[article.ml_bias] || article.ml_bias}
                   </span>
                 )}
 

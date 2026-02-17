@@ -36,3 +36,11 @@ export const BIAS_COLORS: Record<string, string> = {
 }
 
 export const BIAS_ORDER = ['Left-Leaning', 'Center-Left', 'Centrist', 'Center-Right', 'Right-Leaning']
+
+export const BIAS_DISPLAY_NAMES: Record<string, string> = {
+  'Left-Leaning': 'Far-Left',
+  'Center-Left': 'Center-Left',
+  'Centrist': 'Centrist',
+  'Center-Right': 'Center-Right',
+  'Right-Leaning': 'Far-Right',
+}

@@ -27,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${sora.variable}`}>
-      <body className="font-sans">
+      <body className="font-sans bg-white">
         <Navigation />
         {children}
         <Footer />

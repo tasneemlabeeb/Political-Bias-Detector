@@ -1,47 +1,40 @@
 /**
  * Content Script - Runs on every webpage
- * 
- * Detects news articles and analyzes them for political bias.
+ *
+ * Detects news articles and sends them to the backend for bias classification.
  */
 
-// Configuration
 const CONFIG = {
   API_URL: 'http://localhost:8000/api/v1',
-  // News domains to analyze
   NEWS_DOMAINS: [
-    'cnn.com',
-    'foxnews.com',
-    'nytimes.com',
-    'washingtonpost.com',
-    'bbc.com',
-    'theguardian.com',
-    'wsj.com',
-    'reuters.com',
-    'apnews.com',
-    'npr.org',
-    'politico.com',
-    'thehill.com',
+    'cnn.com', 'foxnews.com', 'nytimes.com', 'washingtonpost.com',
+    'bbc.com', 'theguardian.com', 'wsj.com', 'reuters.com',
+    'apnews.com', 'npr.org', 'politico.com', 'thehill.com',
+    'msnbc.com', 'nbcnews.com', 'abcnews.go.com', 'cbsnews.com',
+    'usatoday.com', 'latimes.com', 'nypost.com', 'dailywire.com',
+    'breitbart.com', 'huffpost.com', 'vox.com', 'theatlantic.com',
+    'economist.com', 'aljazeera.com',
   ],
   MIN_ARTICLE_LENGTH: 200,
 };
 
-// Check if current domain is a news site
+const BIAS_COLORS = {
+  'Left-Leaning': '#1565C0',
+  'Center-Left': '#42A5F5',
+  'Centrist': '#78909C',
+  'Center-Right': '#EF5350',
+  'Right-Leaning': '#C62828',
+};
+
 function isNewsSite() {
   const domain = window.location.hostname.replace('www.', '');
-  return CONFIG.NEWS_DOMAINS.some(newsDomain => domain.includes(newsDomain));
+  return CONFIG.NEWS_DOMAINS.some(d => domain.includes(d));
 }
 
-// Extract article content from page
 function extractArticleContent() {
-  // Try common article selectors
   const selectors = [
-    'article',
-    '[role="article"]',
-    '.article-body',
-    '.story-body',
-    '.post-content',
-    '.entry-content',
-    'main',
+    'article', '[role="article"]', '.article-body', '.story-body',
+    '.post-content', '.entry-content', 'main',
   ];
 
   let articleElement = null;
@@ -50,61 +43,44 @@ function extractArticleContent() {
     if (articleElement) break;
   }
 
-  if (!articleElement) {
-    console.log('BiasDetector: No article element found');
-    return null;
-  }
+  if (!articleElement) return null;
 
-  // Extract title
-  let title = document.querySelector('h1')?.textContent?.trim() || 
-              document.querySelector('title')?.textContent?.trim() || 
-              '';
+  const title =
+    document.querySelector('h1')?.textContent?.trim() ||
+    document.title?.trim() ||
+    '';
 
-  // Extract article text
   const paragraphs = articleElement.querySelectorAll('p');
   let text = Array.from(paragraphs)
     .map(p => p.textContent.trim())
     .filter(t => t.length > 20)
-    .join(' ');
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  // Clean up text
-  text = text.replace(/\s+/g, ' ').trim();
+  if (text.length < CONFIG.MIN_ARTICLE_LENGTH) return null;
 
-  if (text.length < CONFIG.MIN_ARTICLE_LENGTH) {
-    console.log('BiasDetector: Article too short');
-    return null;
-  }
-
-  return {
-    title: title,
-    text: text.substring(0, 5000), // Limit to 5000 chars
-    url: window.location.href,
-  };
+  return { title, text: text.substring(0, 5000), url: window.location.href };
 }
 
-// Call API to classify article
+/**
+ * Call POST /api/v1/classify
+ * Request:  { text, title }
+ * Response: { bias, confidence, reasoning, spectrum_left, spectrum_center,
+ *             spectrum_right, bias_intensity, model_used }
+ */
 async function classifyArticle(articleData) {
   try {
-    const settings = await chrome.storage.sync.get(['apiUrl', 'apiKey']);
+    const settings = await chrome.storage.sync.get(['apiUrl']);
     const apiUrl = settings.apiUrl || CONFIG.API_URL;
-    const apiKey = settings.apiKey;
 
-    const response = await fetch(`${apiUrl}/classify/text`, {
+    const response = await fetch(`${apiUrl}/classify`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey && { 'X-API-Key': apiKey }),
-      },
-      body: JSON.stringify({
-        text: articleData.text,
-        title: articleData.title,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: articleData.text, title: articleData.title }),
     });
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
     return await response.json();
   } catch (error) {
     console.error('BiasDetector API error:', error);
@@ -112,157 +88,104 @@ async function classifyArticle(articleData) {
   }
 }
 
-// Display bias badge on page
 function displayBiasBadge(result) {
-  // Remove existing badge if any
-  const existingBadge = document.getElementById('bias-detector-badge');
-  if (existingBadge) {
-    existingBadge.remove();
-  }
+  const existing = document.getElementById('bias-detector-badge');
+  if (existing) existing.remove();
 
-  // Create badge
+  const bias = result.bias || 'Centrist';
+  const confidence = Math.round((result.confidence || 0) * 100);
+  const color = BIAS_COLORS[bias] || '#78909C';
+  const spectrumLeft = Math.round((result.spectrum_left || 0.33) * 100);
+  const spectrumCenter = Math.round((result.spectrum_center || 0.34) * 100);
+  const spectrumRight = Math.round((result.spectrum_right || 0.33) * 100);
+  const intensity = Math.round((result.bias_intensity || 0) * 100);
+
   const badge = document.createElement('div');
   badge.id = 'bias-detector-badge';
   badge.className = 'bias-detector-badge';
-  
-  // Set color based on bias
-  const biasColors = {
-    'Left-Leaning': '#1565C0',
-    'Center-Left': '#42A5F5',
-    'Centrist': '#78909C',
-    'Center-Right': '#EF5350',
-    'Right-Leaning': '#C62828',
-  };
-  
-  const color = biasColors[result.bias_label] || '#78909C';
-  const confidence = Math.round(result.confidence * 100);
-  
+
   badge.innerHTML = `
     <div class="badge-header" style="background-color: ${color};">
-      <span class="badge-icon">📊</span>
       <span class="badge-title">Bias Detection</span>
-      <button class="badge-close" id="bias-badge-close">×</button>
+      <button class="badge-close" id="bias-badge-close">&times;</button>
     </div>
     <div class="badge-content">
       <div class="bias-result">
-        <div class="bias-label">${result.bias_label}</div>
+        <div class="bias-label">${bias}</div>
         <div class="confidence-bar">
           <div class="confidence-fill" style="width: ${confidence}%; background-color: ${color};"></div>
         </div>
-        <div class="confidence-text">${confidence}% confident</div>
+        <div class="confidence-text">${confidence}% confident &middot; ${result.model_used || 'ml'} model</div>
       </div>
       <div class="bias-spectrum">
         <div class="spectrum-label">Bias Spectrum</div>
         <div class="spectrum-bar">
-          <div class="spectrum-left" style="width: ${result.spectrum.left * 100}%"></div>
-          <div class="spectrum-center" style="width: ${result.spectrum.center * 100}%"></div>
-          <div class="spectrum-right" style="width: ${result.spectrum.right * 100}%"></div>
+          <div class="spectrum-left" style="width: ${spectrumLeft}%"></div>
+          <div class="spectrum-center" style="width: ${spectrumCenter}%"></div>
+          <div class="spectrum-right" style="width: ${spectrumRight}%"></div>
         </div>
         <div class="spectrum-labels">
-          <span>Left</span>
-          <span>Center</span>
-          <span>Right</span>
+          <span>Left ${spectrumLeft}%</span>
+          <span>Center ${spectrumCenter}%</span>
+          <span>Right ${spectrumRight}%</span>
         </div>
       </div>
       <div class="bias-details">
         <div class="detail-row">
-          <span>Direction Score:</span>
-          <span>${result.direction_score.toFixed(2)}</span>
+          <span>Bias Intensity:</span>
+          <span>${intensity}%</span>
         </div>
-        <div class="detail-row">
-          <span>Intensity:</span>
-          <span>${Math.round(result.intensity_score * 100)}%</span>
-        </div>
+        ${result.reasoning ? `<div class="detail-row"><span>Reasoning:</span><span style="max-width:180px;text-align:right;">${result.reasoning.substring(0, 120)}</span></div>` : ''}
       </div>
     </div>
   `;
-  
+
   document.body.appendChild(badge);
-  
-  // Add close handler
-  document.getElementById('bias-badge-close').addEventListener('click', () => {
-    badge.remove();
-  });
-  
-  // Make badge draggable
+
+  document.getElementById('bias-badge-close').addEventListener('click', () => badge.remove());
   makeDraggable(badge);
 }
 
-// Make element draggable
 function makeDraggable(element) {
-  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+  let pos3 = 0, pos4 = 0;
   const header = element.querySelector('.badge-header');
-  
-  if (header) {
-    header.onmousedown = dragMouseDown;
-  }
-  
-  function dragMouseDown(e) {
+  if (!header) return;
+
+  header.onmousedown = (e) => {
     e.preventDefault();
     pos3 = e.clientX;
     pos4 = e.clientY;
-    document.onmouseup = closeDragElement;
-    document.onmousemove = elementDrag;
-  }
-  
-  function elementDrag(e) {
-    e.preventDefault();
-    pos1 = pos3 - e.clientX;
-    pos2 = pos4 - e.clientY;
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    element.style.top = (element.offsetTop - pos2) + 'px';
-    element.style.left = (element.offsetLeft - pos1) + 'px';
-  }
-  
-  function closeDragElement() {
-    document.onmouseup = null;
-    document.onmousemove = null;
-  }
+    document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
+    document.onmousemove = (ev) => {
+      ev.preventDefault();
+      element.style.top = (element.offsetTop - (pos4 - ev.clientY)) + 'px';
+      element.style.left = (element.offsetLeft - (pos3 - ev.clientX)) + 'px';
+      pos3 = ev.clientX;
+      pos4 = ev.clientY;
+    };
+  };
 }
 
-// Main function
 async function analyzeCurrentPage() {
-  // Check if extension is enabled
   const settings = await chrome.storage.sync.get(['enabled']);
-  if (settings.enabled === false) {
-    return;
-  }
-  
-  // Check if this is a news site
-  if (!isNewsSite()) {
-    console.log('BiasDetector: Not a news site');
-    return;
-  }
-  
-  // Extract article
+  if (settings.enabled === false) return;
+
+  if (!isNewsSite()) return;
+
   const articleData = extractArticleContent();
-  if (!articleData) {
-    return;
-  }
-  
-  console.log('BiasDetector: Analyzing article...', articleData.title);
-  
-  // Show loading indicator
+  if (!articleData) return;
+
   showLoadingIndicator();
-  
-  // Classify article
   const result = await classifyArticle(articleData);
-  
-  // Hide loading indicator
   hideLoadingIndicator();
-  
+
   if (result) {
-    console.log('BiasDetector: Result:', result);
     displayBiasBadge(result);
-    
-    // Store result
+    // Notify background to update badge icon
+    chrome.runtime.sendMessage({ action: 'showBadge', bias: result.bias });
+    // Store for popup retrieval
     chrome.storage.local.set({
-      lastAnalysis: {
-        url: articleData.url,
-        result: result,
-        timestamp: Date.now(),
-      },
+      lastAnalysis: { url: articleData.url, result, timestamp: Date.now() },
     });
   }
 }
@@ -277,30 +200,25 @@ function showLoadingIndicator() {
 
 function hideLoadingIndicator() {
   const loader = document.getElementById('bias-detector-loader');
-  if (loader) {
-    loader.remove();
-  }
+  if (loader) loader.remove();
 }
 
-// Listen for messages from popup/background
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+// Listen for messages from popup / background
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'analyze') {
     analyzeCurrentPage();
     sendResponse({ status: 'analyzing' });
   } else if (request.action === 'getLastAnalysis') {
     chrome.storage.local.get(['lastAnalysis'], (data) => {
-      sendResponse(data.lastAnalysis);
+      sendResponse(data.lastAnalysis || null);
     });
-    return true; // Keep channel open for async response
+    return true; // keep channel open for async
   }
 });
 
-console.log('BiasDetector: Content script loaded');
-
-// Auto-analyze after page load (if enabled in settings)
+// Auto-analyze on load if enabled
 chrome.storage.sync.get(['autoAnalyze'], (data) => {
   if (data.autoAnalyze !== false) {
-    // Wait a bit for page to fully load
     setTimeout(analyzeCurrentPage, 2000);
   }
 });

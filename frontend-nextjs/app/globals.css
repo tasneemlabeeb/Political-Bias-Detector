@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --bg-canvas: #f8f4ed;
-  --surface: #fffdfb;
+  --bg-canvas: #ffffff;
+  --surface: #ffffff;
   --ink: #0f1419;
   --muted: #5a6570;
   --line: #ddd5c8;
@@ -12,14 +12,23 @@
 }
 
 @layer base {
-  body {
+  * {
+    @apply bg-transparent;
+  }
+  
+  html, body {
     @apply bg-white text-[var(--ink)] font-sans antialiased;
+  }
+  
+  body {
+    background-color: #ffffff !important;
   }
 }
 
 @layer components {
   .card {
     @apply bg-white border border-gray-200 shadow-sm transition-all duration-300;
+    background-color: #ffffff !important;
   }
   
   .card:hover {

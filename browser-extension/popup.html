@@ -5,16 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Political Bias Detector</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       width: 380px;
-      min-height: 480px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+      min-height: 420px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: linear-gradient(145deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
       color: #1e293b;
       animation: gradient-shift 8s ease infinite;
@@ -28,7 +24,6 @@
 
     .header {
       background: rgba(255, 255, 255, 0.98);
-      backdrop-filter: blur(12px);
       padding: 24px 20px 20px;
       text-align: center;
       border-bottom: 1px solid rgba(99, 102, 241, 0.1);
@@ -43,20 +38,13 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
       margin-bottom: 6px;
-      letter-spacing: -0.02em;
     }
 
-    .header p {
-      font-size: 13px;
-      color: #64748b;
-      font-weight: 500;
-    }
+    .header p { font-size: 13px; color: #64748b; font-weight: 500; }
 
     .content {
       background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
       padding: 24px 20px;
-      border-radius: 0 0 16px 16px;
     }
 
     .status {
@@ -66,32 +54,10 @@
       border-radius: 12px;
       margin-bottom: 20px;
       border: 1px solid #e2e8f0;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
-    .status:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
-    }
-
-    .status-icon {
-      font-size: 56px;
-      margin-bottom: 12px;
-      animation: pulse-slow 3s ease-in-out infinite;
-    }
-
-    @keyframes pulse-slow {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
-
-    .status-text {
-      font-size: 14px;
-      color: #475569;
-      line-height: 1.6;
-      font-weight: 500;
-    }
+    .status-icon { font-size: 48px; margin-bottom: 12px; }
+    .status-text { font-size: 14px; color: #475569; line-height: 1.6; font-weight: 500; }
 
     .result {
       background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
@@ -99,91 +65,40 @@
       padding: 20px;
       margin-bottom: 20px;
       border: 1px solid #e5e7eb;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
       animation: slide-up 0.4s ease;
     }
 
     @keyframes slide-up {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .result-label {
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 800;
       margin-bottom: 12px;
       padding: 12px 16px;
       border-radius: 8px;
       text-align: center;
       color: white;
-      letter-spacing: 0.02em;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       text-transform: uppercase;
-      font-size: 14px;
-      position: relative;
-      overflow: hidden;
+      letter-spacing: 0.02em;
     }
 
-    .result-label::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: left 0.5s;
-    }
-
-    .result-label:hover::before {
-      left: 100%;
-    }
-
-    .result-details {
-      font-size: 13px;
-      color: #64748b;
-      margin-top: 16px;
-    }
+    .result-details { font-size: 13px; color: #64748b; margin-top: 16px; }
 
     .detail-row {
       display: flex;
       justify-content: space-between;
       padding: 10px 0;
       border-bottom: 1px solid #e2e8f0;
-      transition: background 0.2s ease;
     }
 
-    .detail-row:hover {
-      background: rgba(99, 102, 241, 0.03);
-      padding-left: 8px;
-      padding-right: 8px;
-      border-radius: 6px;
-    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row span:first-child { color: #64748b; font-weight: 500; }
+    .detail-row span:last-child { font-weight: 700; color: #1e293b; }
 
-    .detail-row:last-child {
-      border-bottom: none;
-    }
-
-    .detail-row span:first-child {
-      color: #64748b;
-      font-weight: 500;
-    }
-
-    .detail-row span:last-child {
-      font-weight: 700;
-      color: #1e293b;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-    }
+    .actions { display: flex; gap: 10px; }
 
     button {
       flex: 1;
@@ -193,28 +108,7 @@
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      letter-spacing: 0.01em;
-      position: relative;
-      overflow: hidden;
-    }
-
-    button::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.3);
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-    }
-
-    button:active::before {
-      width: 300px;
-      height: 300px;
+      transition: all 0.2s ease;
     }
 
     .primary-btn {
@@ -228,64 +122,18 @@
       box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
     }
 
-    .primary-btn:active {
-      transform: translateY(0);
-    }
-
     .secondary-btn {
       background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
       color: #475569;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
-    .secondary-btn:hover {
-      background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    }
+    .secondary-btn:hover { background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); }
 
-    .footer {
-      padding: 18px 20px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(226, 232, 240, 0.8);
-      text-align: center;
-      font-size: 12px;
-      color: #94a3b8;
-      border-radius: 0 0 16px 16px;
-    }
-
-    .footer a {
-      color: #6366f1;
-      text-decoration: none;
-      font-weight: 600;
-      transition: color 0.2s ease;
-    }
-
-    .footer a:hover {
-      color: #8b5cf6;
-      text-decoration: underline;
-    }
-
-    .loading {
-      display: none;
-      text-align: center;
-      padding: 28px 20px;
-    }
-
-    .loading.active {
-      display: block;
-      animation: fade-in 0.3s ease;
-    }
-
-    @keyframes fade-in {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
+    .loading { display: none; text-align: center; padding: 28px 20px; }
+    .loading.active { display: block; }
 
     .spinner {
-      width: 48px;
-      height: 48px;
+      width: 48px; height: 48px;
       border: 4px solid #e2e8f0;
       border-top: 4px solid #6366f1;
       border-radius: 50%;
@@ -293,21 +141,82 @@
       margin: 0 auto 16px;
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Settings panel */
+    .settings-panel {
+      display: none;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      animation: slide-up 0.3s ease;
+    }
+
+    .settings-panel h3 { font-size: 14px; margin-bottom: 12px; color: #334155; }
+
+    .settings-panel label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .settings-panel input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    .settings-panel input[type="text"]:focus { border-color: #6366f1; }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .toggle-row label { margin-bottom: 0; }
+
+    .save-btn {
+      width: 100%;
+      padding: 10px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .save-btn:hover { background: #4f46e5; }
+
+    .footer {
+      padding: 14px 20px;
+      background: rgba(255, 255, 255, 0.95);
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>📊 Political Bias Detector</h1>
+    <h1>Political Bias Detector</h1>
     <p>Analyze news articles for political bias</p>
   </div>
 
   <div class="content">
     <div id="status" class="status">
-      <div class="status-icon">🔍</div>
+      <div class="status-icon">&#128270;</div>
       <div class="status-text">Click "Analyze This Page" to detect political bias in the current article.</div>
     </div>
 
@@ -316,20 +225,27 @@
       <div>Analyzing article...</div>
     </div>
 
-    <div id="result" style="display: none;" class="result">
-      <!-- Results will be inserted here -->
+    <div id="result" style="display: none;" class="result"></div>
+
+    <div id="settingsPanel" class="settings-panel">
+      <h3>Settings</h3>
+      <label for="apiUrlInput">Backend API URL</label>
+      <input type="text" id="apiUrlInput" placeholder="http://localhost:8000/api/v1">
+      <div class="toggle-row">
+        <label for="autoAnalyzeToggle">Auto-analyze on page load</label>
+        <input type="checkbox" id="autoAnalyzeToggle" checked>
+      </div>
+      <button class="save-btn" id="saveSettingsBtn">Save</button>
     </div>
 
     <div class="actions">
       <button id="analyzeBtn" class="primary-btn">Analyze This Page</button>
-      <button id="optionsBtn" class="secondary-btn">Options</button>
+      <button id="settingsBtn" class="secondary-btn">Settings</button>
     </div>
   </div>
 
   <div class="footer">
-    <a href="#" id="privacyLink">Privacy</a> • 
-    <a href="#" id="feedbackLink">Feedback</a> • 
-    <a href="options.html" target="_blank">Settings</a>
+    Political Bias Detector v1.0
   </div>
 
   <script src="popup.js"></script>

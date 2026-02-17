@@ -1,160 +1,107 @@
 """
 Articles Endpoints
 
-Endpoints for fetching and managing news articles.
+Fetch latest news articles with ML bias classification.
 """
 
 import logging
 from typing import List, Optional
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from src.backend.source_manager import SourceManager
-from src.backend.news_crawler import NewsCrawler
+from backend.news_search_service import get_news_search_service
+from backend.ml_service import get_ml_classifier
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 class ArticleResponse(BaseModel):
-    """Response model for article."""
     id: str
     title: str
-    link: str  # Changed from 'url' to 'link' to match frontend
+    link: str
     source_name: str
-    political_bias: str
     published: str
     summary: Optional[str] = None
-    content: Optional[str] = None
+    image_url: Optional[str] = None
+    political_bias: str = "Centrist"
+    ml_bias: Optional[str] = None
+    ml_confidence: Optional[float] = None
+    ml_reasoning: Optional[str] = None
 
 
 class FetchNewsResponse(BaseModel):
-    """Response model for news fetching."""
     success: bool
-    message: str
-    articles_count: int
-    sources_count: int
     articles: List[ArticleResponse]
-
-
-@router.get("", response_model=List[ArticleResponse])
-async def get_articles(
-    source: Optional[str] = Query(None, description="Filter by source name"),
-    bias: Optional[str] = Query(None, description="Filter by political bias"),
-    limit: int = Query(100, ge=1, le=500, description="Maximum number of articles"),
-):
-    """
-    Get articles from the database.
-    
-    Args:
-        source: Optional filter by source name
-        bias: Optional filter by political bias
-        limit: Maximum number of articles to return
-    """
-    try:
-        # TODO: Implement database storage and retrieval
-        # For now, return empty list
-        return []
-    except Exception as e:
-        logger.error(f"Error fetching articles: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching articles: {str(e)}"
-        )
+    message: Optional[str] = None
 
 
 @router.post("/fetch", response_model=FetchNewsResponse)
-async def fetch_news(
-    max_sources: int = Query(10, ge=1, le=50, description="Max sources to crawl"),
-    articles_per_source: int = Query(20, ge=1, le=100, description="Max articles per source"),
-):
-    """
-    Fetch latest news from all active sources.
-    
-    This endpoint will:
-    1. Get all active news sources from database
-    2. Crawl RSS feeds and websites
-    3. Extract articles with metadata
-    4. Return articles with bias labels
-    
-    Args:
-        max_sources: Maximum number of sources to crawl
-        articles_per_source: Maximum articles to fetch per source
-    """
+async def fetch_news():
+    """Fetch latest political news articles and classify them."""
     try:
-        logger.info(f"Starting news fetch: max_sources={max_sources}, articles_per_source={articles_per_source}")
-        
-        # Initialize managers
-        source_manager = SourceManager()
-        crawler = NewsCrawler(
-            source_manager=source_manager,
-            max_articles_per_source=articles_per_source
-        )
-        
-        # Get active sources
-        sources = source_manager.get_active_sources()
-        
-        if not sources:
+        search_service = get_news_search_service()
+
+        if not search_service.enabled:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No active news sources found. Please add sources first."
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="News search service not configured. Please set NEWS_API_KEY.",
             )
-        
-        # Limit sources if needed
-        sources = sources[:max_sources]
-        logger.info(f"Crawling {len(sources)} sources")
-        
-        # Crawl articles
-        articles_df = crawler.crawl_all_sources()
-        
-        if articles_df.empty:
-            return FetchNewsResponse(
-                success=True,
-                message="No articles found",
-                articles_count=0,
-                sources_count=len(sources),
-                articles=[]
-            )
-        
-        # Convert DataFrame to response models
-        articles = []
-        for _, row in articles_df.iterrows():
-            article = ArticleResponse(
-                id=f"{row['source_name']}_{hash(row['link'])}",
-                title=row['title'],
-                link=row['link'],
-                source_name=row['source_name'],
-                political_bias=row['political_bias'],
-                published=row['published'] if row['published'] else datetime.now().isoformat(),
-                summary=row.get('summary'),
-                content=row.get('content')
-            )
-            articles.append(article)
-        
-        logger.info(f"Successfully fetched {len(articles)} articles from {len(sources)} sources")
-        
-        return FetchNewsResponse(
-            success=True,
-            message=f"Successfully fetched {len(articles)} articles from {len(sources)} sources",
-            articles_count=len(articles),
-            sources_count=len(sources),
-            articles=articles
+
+        raw_articles = search_service.search_articles(
+            query="politics OR government OR congress OR election",
+            max_results=30,
+            days_back=7,
         )
-        
+
+        if not raw_articles:
+            return FetchNewsResponse(
+                success=True, articles=[], message="No articles found"
+            )
+
+        # Classify with ML
+        texts = []
+        titles = []
+        for a in raw_articles:
+            title = a.get("title", "")
+            desc = a.get("description", "") or ""
+            titles.append(title)
+            texts.append(f"{title}. {desc}")
+
+        classifier = get_ml_classifier()
+        if classifier.is_available:
+            classifications = classifier.classify_batch(texts, titles)
+        else:
+            classifications = [{}] * len(raw_articles)
+
+        articles = []
+        for i, a in enumerate(raw_articles):
+            cls = classifications[i] if i < len(classifications) else {}
+            bias = cls.get("ml_bias", "Centrist")
+
+            articles.append(ArticleResponse(
+                id=str(i + 1),
+                title=a.get("title", ""),
+                link=a.get("url", ""),
+                source_name=a.get("source", {}).get("name", "Unknown"),
+                published=a.get("publishedAt", datetime.now().isoformat()),
+                summary=a.get("description"),
+                image_url=a.get("urlToImage"),
+                political_bias=bias,
+                ml_bias=bias,
+                ml_confidence=cls.get("ml_confidence"),
+                ml_reasoning=cls.get("ml_reasoning"),
+            ))
+
+        return FetchNewsResponse(success=True, articles=articles)
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching news: {e}", exc_info=True)
+        logger.error(f"Failed to fetch news: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching news: {str(e)}"
+            detail=f"Failed to fetch news: {str(e)}",
         )
-
-
-@router.delete("/{article_id}")
-async def delete_article(article_id: str):
-    """Delete an article by ID."""
-    # TODO: Implement article deletion from database
-    return {"success": True, "message": f"Article {article_id} deleted"}

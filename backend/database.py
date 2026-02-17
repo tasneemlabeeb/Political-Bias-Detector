@@ -187,3 +187,16 @@ class APIKey(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=True)
     last_used_at = Column(DateTime, nullable=True)
+
+
+class BiasReport(Base):
+    """Crowdsourced bias report for model training."""
+
+    __tablename__ = "bias_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    url = Column(String(1024), nullable=True)
+    title = Column(String(512), nullable=True)
+    article_text = Column(Text, nullable=True)
+    bias_label = Column(String(50), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
