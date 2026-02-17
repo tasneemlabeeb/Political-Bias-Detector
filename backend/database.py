@@ -200,3 +200,20 @@ class BiasReport(Base):
     article_text = Column(Text, nullable=True)
     bias_label = Column(String(50), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class CitationRecord(Base):
+    """Persisted citation between two news sources."""
+
+    __tablename__ = "citations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    from_source = Column(String(255), nullable=False, index=True)
+    to_source = Column(String(255), nullable=False, index=True)
+    from_article_id = Column(Integer, nullable=True, index=True)
+    to_url = Column(String(1024), nullable=True)
+    context = Column(Text, nullable=True)
+    citation_type = Column(String(50), default="hyperlink")  # hyperlink, mention, reference
+    from_bias = Column(String(50), nullable=True)
+    to_bias = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from backend.api.v1.endpoints import (
     articles,
     auth,
+    citations,
     classify,
     enhanced_search,
     reports,
@@ -28,3 +29,4 @@ api_router.include_router(url_classifier.router, prefix="/classify/url", tags=["
 api_router.include_router(reports.router, prefix="/reports", tags=["Bias Reports"])
 api_router.include_router(search.router, prefix="/search", tags=["Topic Search"])
 api_router.include_router(enhanced_search.router, prefix="/search/enhanced", tags=["Enhanced Search"])
+api_router.include_router(citations.router, prefix="/citations", tags=["Citation Network"])
